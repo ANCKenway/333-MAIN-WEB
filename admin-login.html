@@ -20,7 +20,7 @@
   <div class="wrap">
     <h1>Connexion admin</h1>
     <div class="card">
-      <p id="note" class="muted">Veuillez vous authentifier. Cette zone est protégée par 2FA (mot de passe et/ou code OTP).</p>
+  <p id="note" class="muted"><strong>2FA</strong> activée: mot de passe puis code OTP requis.</p>
       <form id="form" autocomplete="off">
         <div id="pw-block">
           <label for="code">Mot de passe</label>
@@ -68,7 +68,7 @@
         const j = await r.json();
         if(j && j.ok){
           if(j.data && j.data.enroll){ location.href = 'admin-enroll.html'; return; }
-          location.href = 'admin.html'; return;
+          location.href = 'admin.php'; return;
         }
         throw new Error('invalid');
       }catch(_){ msg.textContent='Identifiants invalides.'; msg.style.visibility='visible'; }

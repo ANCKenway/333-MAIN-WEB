@@ -71,7 +71,7 @@
       try{
         const otp = $('#otp').value.trim();
         const r = await fetch('api/aliases.php?action=totp_verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ otp }) });
-        if(r.ok){ const j = await r.json(); if(j && j.ok){ location.href='admin.html'; return; } }
+  if(r.ok){ const j = await r.json(); if(j && j.ok){ location.href='admin.php'; return; } }
         throw new Error('invalid');
       }catch(_){ msg.textContent='Code invalide.'; msg.style.visibility='visible'; }
     });

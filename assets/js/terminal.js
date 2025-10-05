@@ -120,6 +120,9 @@
       return;
     }
     // Silent fallback
+    if(/^[A-Za-z0-9@#\-_.]{12,}$/.test(input)){
+      print('Accès admin uniquement via la page Connexion (2FA). Utilisez le lien en bas de page.');
+    }
   }
 
   function onKey(e){

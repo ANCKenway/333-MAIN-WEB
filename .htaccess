@@ -15,5 +15,5 @@ RewriteRule ^(.*)$ /frontgate.php?fg_path=$1 [L,QSA]
 
 # Sinon, protéger seulement l'admin
 RewriteCond %{DOCUMENT_ROOT}/frontgate.lock !-f
-RewriteCond %{REQUEST_URI} ^/(admin\.html|admin-login\.html|admin-enroll\.html)$ [NC]
+RewriteCond %{REQUEST_URI} ^/(admin\.php|admin\.html|admin-login\.html|admin-enroll\.html)$ [NC]
 RewriteRule ^(.*)$ /frontgate.php?fg_path=$1 [L,QSA]
