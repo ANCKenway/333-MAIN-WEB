@@ -108,7 +108,30 @@
       }catch(_){ /* silencieux */ }
     })();
     if(key === 'poster'){ commands.poster(); return; }
-    // Note: aucun accès admin/2FA n'est déclenché via le terminal pour éviter tout contournement ou scan.
+    // Accès admin via terminal: passe systématiquement par l'API, 2FA inclus
+    (async ()=>{
+      const entered = input.trim();
+      try{
+        const r = await fetch('api/aliases.php?action=auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code: entered }) });
+        if(r.status===429){ print('Trop d\'essais. Patientez.'); return; }
+        const j = await r.json();
+        if(j && j.ok){
+          if(j.data && j.data.enroll){
+            print('2FA: configuration requise → QR Code…');
+            window.location.href = 'admin-enroll.html';
+            return;
+          }
+          if(j.data && j.data.otp){
+            print('2FA: entrez votre code OTP.');
+            window.location.href = 'admin-login.html?from=prompt';
+            return;
+          }
+          window.location.href = 'admin.php';
+          return;
+        }
+        print('Code invalide ou 2FA requise. Utilisez la page Admin: Connexion.');
+      }catch(_){ print('Erreur réseau'); }
+    })();
     if(key === 'mail' || key === 'mailto'){
       window.location.href = 'mailto:contact@333fm.fr'; return;
     }

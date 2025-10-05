@@ -104,6 +104,13 @@ if($action==='me'){
     ko('unauthorized', 401);
   }
 }
+// Étape courante (enrôlement ou OTP en attente)
+if($action==='stage'){
+  $stage = [];
+  if(!empty($_SESSION['enroll']['pwd_ok'])) $stage['enroll'] = true;
+  if(!empty($_SESSION['otp_pending'])) $stage['otp'] = true;
+  ok($stage);
+}
 // Exigences d'auth (découverte côté client)
 if($action==='requirements'){
   $req = [
@@ -184,8 +191,15 @@ if($action==='auth'){
     if(empty($_SESSION['csrf'])){ $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
     ok(['enroll'=>true, 'csrf'=>$_SESSION['csrf']]);
   }
+  // Cas: TOTP requis et mot de passe OK, mais OTP manquant/incorrect -> mettre en attente OTP
+  if($needTotp && $okPwd && !$okTotp){
+    $_SESSION['otp_pending'] = true;
+    if(empty($_SESSION['csrf'])){ $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+    ok(['otp'=>true]);
+  }
   if($okPwd && $okTotp){
     $_SESSION['admin'] = true;
+    unset($_SESSION['otp_pending']);
     if(empty($_SESSION['csrf'])){ $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
     ok(['csrf'=>$_SESSION['csrf']]);
   } else ko('invalid', 401);
@@ -221,6 +235,7 @@ if($action==='totp_verify'){
   $otp = $body['otp'] ?? '';
   if(!check_totp($otp)) ko('invalid', 401);
   unset($_SESSION['enroll']);
+  unset($_SESSION['otp_pending']);
   $_SESSION['admin'] = true;
   if(empty($_SESSION['csrf'])){ $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
   ok(['csrf'=>$_SESSION['csrf']]);
