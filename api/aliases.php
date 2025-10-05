@@ -76,7 +76,12 @@ if($action==='logout'){
 function check_code($code){
   $code = trim((string)$code);
   if($code==='') return false;
-  if(defined('ADMIN_TOTP_SECRET_HEX')){
+  // Option 1: mot de passe hashé (bcrypt/argon2)
+  if(defined('ADMIN_PASSWORD_HASH') && ADMIN_PASSWORD_HASH){
+    return password_verify($code, ADMIN_PASSWORD_HASH) === true;
+  }
+  // Option 2: TOTP basé sur un secret hexadécimal
+  if(defined('ADMIN_TOTP_SECRET_HEX') && ADMIN_TOTP_SECRET_HEX){
     $period = defined('ADMIN_TOTP_PERIOD') ? ADMIN_TOTP_PERIOD : 30;
     $digits = defined('ADMIN_TOTP_DIGITS') ? ADMIN_TOTP_DIGITS : 6;
     $secret = hex2bin(ADMIN_TOTP_SECRET_HEX);
@@ -95,8 +100,8 @@ function check_code($code){
     }
     return false;
   }
-  // Fallback permissif si pas de config: code non vide accepté (développement uniquement)
-  return true;
+  // Par défaut (pas de config): refuser
+  return false;
 }
 
 // Auth

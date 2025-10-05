@@ -44,7 +44,7 @@
         <input type="password" id="code" placeholder="Code sécurisé" />
         <button class="btn" id="enter">Entrer</button>
       </div>
-      <small class="muted">Astuce: le code est vérifié côté serveur via HMAC temporel (à implémenter dans api/aliases.php)</small>
+  <small class="muted">Le code est vérifié côté serveur (TOTP ou mot de passe hashé). Aucun contrôle côté client.</small>
     </div>
     <div id="panel" class="card" style="display:none">
       <p class="muted">Ajoutez des alias: à gauche le prompt que l’utilisateur tape, à droite l’URL de redirection.</p>
@@ -164,11 +164,6 @@
         if(j && j.ok){ authOk(); }
         else { throw new Error('invalid'); }
       }catch(_){
-        // Fallback: vérifier contre data/admin.json
-        try{
-          const r2 = await fetch('data/admin.json', {cache:'no-cache'});
-          if(r2.ok){ const j2 = await r2.json(); if(j2 && j2.key && String(j2.key)===String(code.value)){ authOk(); return; } }
-        }catch(__){}
         msg.textContent = 'Code invalide'; msg.className = 'err';
       }
     });
