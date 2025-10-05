@@ -128,6 +128,11 @@
             try{ sessionStorage.setItem('adminAuthed','1'); sessionStorage.setItem('adminCode', entered); }catch(_){}
             window.location.href = 'admin.html';
             return;
+          } else {
+            // Si l’auth via code direct échoue (2FA requis), rediriger vers la page de connexion
+            print('2FA requis: redirection vers la page de connexion…');
+            window.location.href = 'admin-login.html?from=prompt';
+            return;
           }
         }catch(_){ }
       }catch(_){ }

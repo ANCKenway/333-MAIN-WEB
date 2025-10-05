@@ -20,7 +20,7 @@
   <div class="wrap">
     <h1>Connexion admin</h1>
     <div class="card">
-      <p class="muted">Veuillez vous authentifier.</p>
+      <p id="note" class="muted">Veuillez vous authentifier. Cette zone est protégée par 2FA (mot de passe et/ou code OTP).</p>
       <form id="form" autocomplete="off">
         <div id="pw-block">
           <label for="code">Mot de passe</label>
@@ -38,6 +38,7 @@
   <script>
     const $ = s=>document.querySelector(s);
     const msg = $('#msg');
+    const note = $('#note');
     // Si déjà authentifié côté serveur, aller directement sur l'admin
     (async function already(){
       try{ const r = await fetch('api/aliases.php?action=me', {cache:'no-cache'}); if(r.ok){ const j = await r.json(); if(j && j.ok && j.data && j.data.admin){ location.href='admin.html'; return; } } }catch(_){ }
@@ -49,6 +50,11 @@
       const req = await getReq();
       if(req.password) $('#pw-block').style.display='block';
       if(req.totp) $('#otp-block').style.display='block';
+      // Message contextuel si redirigé depuis le prompt
+      const params = new URLSearchParams(location.search);
+      if(params.get('from') === 'prompt'){
+        note.textContent = 'Authentification requise depuis le prompt. Entrez votre mot de passe' + (req.totp ? ' et votre code OTP' : '') + '.';
+      }
     })();
     $('#form').addEventListener('submit', async (e)=>{
       e.preventDefault();
