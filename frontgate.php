@@ -42,8 +42,18 @@ if(function_exists('session_set_cookie_params')){
 if(session_status()===PHP_SESSION_NONE){ session_start(); }
 
 // Utilitaires auth
+function fg_get_dynamic_totp_secret_hex(){
+  // Priorité à la constante si définie
+  if(defined('ADMIN_TOTP_SECRET_HEX') && ADMIN_TOTP_SECRET_HEX) return ADMIN_TOTP_SECRET_HEX;
+  $f = __DIR__ . '/api/secure.json';
+  if(file_exists($f)){
+    $j = json_decode(@file_get_contents($f), true);
+    if(is_array($j) && !empty($j['totp_secret_hex'])) return (string)$j['totp_secret_hex'];
+  }
+  return '';
+}
 function fg_need_password(){ return defined('ADMIN_PASSWORD_HASH') && ADMIN_PASSWORD_HASH; }
-function fg_need_totp(){ return defined('ADMIN_TOTP_SECRET_HEX') && ADMIN_TOTP_SECRET_HEX; }
+function fg_need_totp(){ return fg_get_dynamic_totp_secret_hex() !== ''; }
 function fg_check_password($code){
   $code = trim((string)$code);
   if($code==='') return false;
@@ -56,7 +66,8 @@ function fg_check_totp($otp){
   if(!fg_need_totp()) return true;
   $period = defined('ADMIN_TOTP_PERIOD') ? ADMIN_TOTP_PERIOD : 30;
   $digits = defined('ADMIN_TOTP_DIGITS') ? ADMIN_TOTP_DIGITS : 6;
-  $secret = @hex2bin(ADMIN_TOTP_SECRET_HEX);
+  $hex = fg_get_dynamic_totp_secret_hex();
+  $secret = $hex ? @hex2bin($hex) : null;
   if(!$secret) return false;
   $ts = time();
   for($i=-1; $i<=1; $i++){
@@ -120,7 +131,15 @@ if(!$authed && ($_SERVER['REQUEST_METHOD'] === 'POST')){
     $needOtp = fg_need_totp();
     $okPwd = !$needPwd || fg_check_password($code);
     $okOtp = !$needOtp || fg_check_totp($otp);
-    if($okPwd && $okOtp){
+    if($needPwd && !$okPwd){
+      $err = 'Identifiants invalides.';
+    } elseif($okPwd && !$needOtp){
+      // MDP OK mais pas encore de TOTP configuré → passer en mode enrôlement
+      $_SESSION['enroll'] = ['pwd_ok'=>true, 'ts'=>time()];
+      if(empty($_SESSION['csrf'])){ $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+      header('Location: /admin-enroll.html');
+      exit;
+    } elseif($okPwd && $okOtp){
       $_SESSION['admin'] = true;
       if(empty($_SESSION['csrf'])){ $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
       header('Location: ' . ($requested ?: '/'));

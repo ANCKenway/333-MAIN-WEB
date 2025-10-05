@@ -108,31 +108,7 @@
       }catch(_){ /* silencieux */ }
     })();
     if(key === 'poster'){ commands.poster(); return; }
-    // Admin: clé secrète entière saisie dans le prompt => ouvrir l'interface admin
-    (async ()=>{
-      try{
-        // 1) charger une clé statique facultative depuis data/admin.json {"key":"..."}
-        let adminKey = null;
-        try{ const r = await fetch('data/admin.json', {cache:'no-cache'}); if(r.ok){ const j = await r.json(); adminKey = (j && j.key) ? String(j.key) : null; } }catch(_){ }
-        const entered = input.trim();
-        // Toujours valider côté serveur (déclenchement enrôlement si nécessaire)
-        try{
-          const rr = await fetch('api/aliases.php?action=auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code: entered }) });
-          const jj = await rr.json();
-          if(jj && jj.ok){
-            try{ sessionStorage.setItem('adminAuthed','1'); sessionStorage.setItem('adminCode', entered); }catch(_){}
-            if(jj.data && jj.data.enroll){ window.location.href = 'admin-enroll.html'; }
-            else { window.location.href = 'admin.html'; }
-            return;
-          } else {
-            // Si l’auth via code direct échoue (2FA requis), rediriger vers la page de connexion
-            print('2FA requis: redirection vers la page de connexion…');
-            window.location.href = 'admin-login.html?from=prompt';
-            return;
-          }
-        }catch(_){ }
-      }catch(_){ }
-    })();
+    // Note: aucun accès admin/2FA n'est déclenché via le terminal pour éviter tout contournement ou scan.
     if(key === 'mail' || key === 'mailto'){
       window.location.href = 'mailto:contact@333fm.fr'; return;
     }
