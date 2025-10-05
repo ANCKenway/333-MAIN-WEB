@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "slug": "synesthesia",
+    "title": "Synesthesia — Web Audio x Visuals",
+    "status": "beta",
+    "url": "https://example.com/synesthesia"
+  },
+  {
+    "id": 2,
+    "slug": "monolith",
+    "title": "Monolith — Generative Art Install",
+    "status": "wip",
+    "url": "https://example.com/monolith"
+  },
+  {
+    "id": 3,
+    "slug": "relay-333",
+    "title": "Relay 333 — Token Router",
+    "status": "prototype",
+    "url": "https://example.com/relay"
+  }
+]

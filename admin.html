@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>333.FM — Admin aliases</title>
+  <style>
+    :root{ --bg:#0d0d0d; --fg:#fff; --red:#C60202; --orange:#F67F41 }
+    body{ margin:0; font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0d0d0d; color:#fff; }
+    .wrap{ max-width:900px; margin: 3rem auto; padding: 1rem; }
+    h1{ font-size: 1.2rem; margin: 0 0 1rem; color:#fff }
+    .card{ background: rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,.4) }
+    input, textarea, button{ font: inherit; color: inherit }
+    input[type=text], input[type=password]{ width:100%; padding:.6rem .7rem; border-radius:8px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.04) }
+    textarea{ width:100%; min-height: 340px; padding:.6rem .7rem; border-radius:8px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.04); font-family: ui-monospace, 'JetBrains Mono', Consolas, monospace }
+    .row{ display:flex; gap:.6rem; align-items:center }
+    .row > *{ flex:1 }
+    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; padding:.6rem .9rem; border-radius:10px; background:#fff; color:#111; font-weight:600; border: none; cursor:pointer }
+    .btn.ghost{ background: rgba(255,255,255,.08); color:#fff; border:1px solid rgba(255,255,255,.18) }
+    .muted{ color:#c8c8c8 }
+    .mt{ margin-top: .8rem }
+    .ok{ color:#00d26a } .err{ color:#ff3b3b }
+    table{ width:100%; border-collapse: collapse; }
+    th, td{ padding:.5rem .6rem; border-bottom:1px solid rgba(255,255,255,.12); text-align:left }
+    th{ color:#f0f0f0; font-weight:700 }
+    td input{ width:100%; padding:.45rem .5rem; border-radius:8px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.04); color:#fff }
+    .actions{ display:flex; gap:.4rem; justify-content:flex-end }
+    .small{ font-size:.9em }
+    .pill{ display:inline-block; padding:.15rem .5rem; border-radius:999px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); font-size:.8em }
+    .warn{ color:#ffcc00 }
+    .row.spc{ justify-content:space-between }
+    .hint{ font-size:.9em; color:#c8c8c8 }
+    .field-bad input{ border-color: rgba(255,0,0,.5) }
+    .toast{ position: fixed; left:50%; bottom: 2rem; transform: translateX(-50%); background: rgba(20,20,20,.96); color:#fff; border:1px solid rgba(255,255,255,.14); padding:.5rem .8rem; border-radius:8px; display:none }
+    .toast.show{ display:block }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Admin — Aliases prompt → URL</h1>
+    <div id="login" class="card">
+      <p class="muted">Entrez votre code d’accès</p>
+      <div class="row">
+        <input type="password" id="code" placeholder="Code sécurisé" />
+        <button class="btn" id="enter">Entrer</button>
+      </div>
+      <small class="muted">Astuce: le code est vérifié côté serveur via HMAC temporel (à implémenter dans api/aliases.php)</small>
+    </div>
+    <div id="panel" class="card" style="display:none">
+      <p class="muted">Ajoutez des alias: à gauche le prompt que l’utilisateur tape, à droite l’URL de redirection.</p>
+      <div class="row spc">
+        <div class="row" style="flex:1">
+          <input type="text" id="filter" placeholder="Filtrer par prompt…" style="max-width:260px" />
+          <button class="btn ghost" id="sort">Trier A→Z</button>
+        </div>
+        <div class="row" style="flex:1; justify-content:flex-end">
+          <button class="btn" id="add">Ajouter une ligne</button>
+          <button class="btn ghost" id="reload">Recharger</button>
+          <button class="btn ghost" id="logout" style="max-width:160px">Déconnexion</button>
+        </div>
+      </div>
+      <div class="mt">
+        <table id="table">
+          <thead>
+            <tr><th>Prompt</th><th>URL</th><th class="small">Actions</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="row mt">
+        <button class="btn" id="save">Sauvegarder</button>
+      </div>
+      <div class="row spc mt">
+        <p id="msg" class="muted">Prêt</p>
+        <span id="dirty" class="pill" style="display:none">Modifications non sauvegardées</span>
+      </div>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+  <script>
+    const $ = sel => document.querySelector(sel);
+    const login = $('#login');
+    const panel = $('#panel');
+    const code = $('#code');
+  const table = $('#table');
+    const filter = $('#filter');
+    const sortBtn = $('#sort');
+    const toast = $('#toast');
+    const dirty = $('#dirty');
+    let isDirty = false;
+    const msg = $('#msg');
+
+    function setDirty(v){ isDirty = !!v; dirty.style.display = isDirty? 'inline-block':'none'; }
+    function showToast(t){ toast.textContent = t; toast.classList.add('show'); setTimeout(()=> toast.classList.remove('show'), 1400); }
+    function isValidKey(k){ return /^[a-z0-9._-]{1,64}$/i.test(k); }
+    function isValidUrl(u){ return /^https?:\/\//i.test(u) || /^\//.test(u); }
+    function renderRows(map){
+      const tbody = table.querySelector('tbody');
+      tbody.innerHTML = '';
+      const entries = Object.entries(map || {});
+      if(entries.length===0) entries.push(['','']);
+      for(const [k,v] of entries){
+        const tr = document.createElement('tr');
+        const tdK = document.createElement('td');
+        const tdV = document.createElement('td');
+        const tdA = document.createElement('td'); tdA.className = 'actions';
+        const inK = document.createElement('input'); inK.type='text'; inK.placeholder='ex: 333game'; inK.value = k || '';
+        const inV = document.createElement('input'); inV.type='text'; inV.placeholder='https://… ou /chemin'; inV.value = v || '';
+        const test = document.createElement('button'); test.type='button'; test.className='btn ghost small'; test.textContent='Tester';
+        const copy = document.createElement('button'); copy.type='button'; copy.className='btn ghost small'; copy.textContent='Copier';
+        const del = document.createElement('button'); del.type='button'; del.className='btn ghost small'; del.textContent='Supprimer';
+        const validate = ()=>{ tr.classList.toggle('field-bad', !(isValidKey(inK.value.trim()) && isValidUrl(inV.value.trim()))); };
+        inK.addEventListener('input', ()=>{ validate(); setDirty(true); });
+        inV.addEventListener('input', ()=>{ validate(); setDirty(true); });
+        validate();
+        test.addEventListener('click', ()=>{
+          const url = inV.value.trim();
+          if(isValidUrl(url)){
+            const u = /^https?:\/\//i.test(url)? url : location.origin + url;
+            window.open(u, '_blank', 'noopener');
+          } else showToast('URL invalide');
+        });
+        copy.addEventListener('click', async ()=>{
+          try{ await navigator.clipboard.writeText(inK.value.trim()); showToast('Prompt copié'); }catch(_){ showToast('Copie impossible'); }
+        });
+        del.addEventListener('click', ()=> tr.remove());
+        tdK.appendChild(inK); tdV.appendChild(inV); tdA.append(test, copy, del);
+        tr.appendChild(tdK); tr.appendChild(tdV); tr.appendChild(tdA);
+        tbody.appendChild(tr);
+      }
+    }
+    async function load(){
+      try{
+        const r = await fetch('data/aliases.json', {cache:'no-cache'});
+        const j = await r.json();
+        renderRows(j);
+      }catch(e){ renderRows({"333game":"https://333fm.fr/333game/"}); }
+    }
+    let csrf = '';
+    function authOk(){ login.style.display='none'; panel.style.display='block'; load(); }
+    async function checkSession(){
+      try{
+        const r = await fetch('api/aliases.php?action=me', {cache:'no-cache'});
+        if(r.ok){ const j = await r.json(); if(j && j.ok && j.data && j.data.admin){ csrf = j.data.csrf || ''; authOk(); return true; } }
+      }catch(_){ }
+      return false;
+    }
+    // Auto-auth depuis la session si déjà validé en prompt
+    (async function auto(){
+      try{
+        const authed = sessionStorage.getItem('adminAuthed') === '1';
+        const savedCode = sessionStorage.getItem('adminCode') || '';
+        // Si session serveur valide, on ouvre direct (plus sûr)
+        const ok = await checkSession();
+        if(ok) return;
+        if(authed){ authOk(); if(savedCode) code.value = savedCode; }
+      }catch(_){ }
+    })();
+    $('#enter').addEventListener('click', async ()=>{
+      // Appel API côté serveur pour valider le code
+      try{
+        const r = await fetch('api/aliases.php?action=auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code: code.value}) });
+        const j = await r.json();
+        if(j && j.ok){ authOk(); }
+        else { throw new Error('invalid'); }
+      }catch(_){
+        // Fallback: vérifier contre data/admin.json
+        try{
+          const r2 = await fetch('data/admin.json', {cache:'no-cache'});
+          if(r2.ok){ const j2 = await r2.json(); if(j2 && j2.key && String(j2.key)===String(code.value)){ authOk(); return; } }
+        }catch(__){}
+        msg.textContent = 'Code invalide'; msg.className = 'err';
+      }
+    });
+    $('#reload').addEventListener('click', load);
+    $('#add').addEventListener('click', ()=>{
+      const tbody = table.querySelector('tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td><input type="text" placeholder="ex: 333game"></td><td><input type="text" placeholder="https://… ou /chemin"></td><td class="actions"><button type="button" class="btn ghost small">Tester</button><button type="button" class="btn ghost small">Copier</button><button type="button" class="btn ghost small">Supprimer</button></td>';
+      const [test, copy, del] = tr.querySelectorAll('button');
+      test.addEventListener('click', ()=>{
+        const url = tr.querySelectorAll('input')[1].value.trim();
+        if(/^https?:\/\//i.test(url) || /^\//.test(url)){
+          const u = /^https?:\/\//i.test(url)? url : location.origin + url;
+          window.open(u, '_blank', 'noopener');
+        } else showToast('URL invalide');
+      });
+      copy.addEventListener('click', async ()=>{
+        try{ await navigator.clipboard.writeText(tr.querySelectorAll('input')[0].value.trim()); showToast('Prompt copié'); }catch(_){ showToast('Copie impossible'); }
+      });
+      del.addEventListener('click', ()=> tr.remove());
+      const [inK, inV] = tr.querySelectorAll('input');
+      const validate = ()=>{ tr.classList.toggle('field-bad', !(/^[a-z0-9._-]{1,64}$/i.test(inK.value.trim()) && (/^https?:\/\//i.test(inV.value.trim()) || /^\//.test(inV.value.trim())))); };
+      inK.addEventListener('input', ()=>{ validate(); setDirty(true); });
+      inV.addEventListener('input', ()=>{ validate(); setDirty(true); });
+      validate();
+      tbody.appendChild(tr);
+    });
+    filter.addEventListener('input', ()=>{
+      const q = filter.value.trim().toLowerCase();
+      table.querySelectorAll('tbody tr').forEach(tr=>{
+        const k = (tr.querySelector('input')?.value || '').toLowerCase();
+        tr.style.display = k.includes(q)? '' : 'none';
+      });
+    });
+    sortBtn.addEventListener('click', ()=>{
+      const tbody = table.querySelector('tbody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      rows.sort((a,b)=>{
+        const ka = (a.querySelector('input')?.value || '').toLowerCase();
+        const kb = (b.querySelector('input')?.value || '').toLowerCase();
+        return ka.localeCompare(kb);
+      });
+      rows.forEach(r=> tbody.appendChild(r));
+    });
+    $('#save').addEventListener('click', async ()=>{
+      try{
+        const savedCode = (sessionStorage.getItem('adminCode') || code.value || '').toString();
+        // Construire la map à partir du tableau
+        const map = {};
+        const rows = table.querySelectorAll('tbody tr');
+        for(const tr of rows){
+          const inputs = tr.querySelectorAll('input');
+          const k = (inputs[0].value || '').trim();
+          const v = (inputs[1].value || '').trim();
+          if(!k || !v) continue;
+          map[k] = v;
+        }
+        const body = { code: savedCode, data: map };
+        const headers = {'Content-Type':'application/json'};
+        if(csrf) headers['X-CSRF'] = csrf;
+        const r = await fetch('api/aliases.php?action=save', { method:'POST', headers, body: JSON.stringify(body) });
+        const j = await r.json();
+        if(j && j.ok){ msg.textContent = 'Sauvegardé'; msg.className = 'ok'; setDirty(false); showToast('Alias enregistrés'); }
+        else { msg.textContent = 'Échec sauvegarde'; msg.className = 'err'; showToast('Échec sauvegarde'); }
+      }catch(e){ msg.textContent = 'Erreur: ' + e.message; msg.className = 'err'; }
+    });
+    // Raccourci Ctrl+S / Cmd+S
+    window.addEventListener('keydown', (e)=>{
+      if((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='s'){
+        e.preventDefault(); $('#save').click();
+      }
+    });
+    // Alerte avant départ si non sauvegardé
+    window.addEventListener('beforeunload', (e)=>{ if(isDirty){ e.preventDefault(); e.returnValue = ''; } });
+    $('#logout').addEventListener('click', async ()=>{
+      try{ await fetch('api/aliases.php?action=logout', {cache:'no-cache'}); }catch(_){ }
+      try{ sessionStorage.removeItem('adminAuthed'); sessionStorage.removeItem('adminCode'); }catch(_){ }
+      location.href = './';
+    });
+  </script>
+</body>
+</html>

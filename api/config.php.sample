@@ -1,0 +1,9 @@
+<?php
+// Copiez ce fichier en config.php et remplacez la clé par une valeur forte (32 octets hex)
+// Exemple pour générer une clé (PowerShell):
+//   [Guid]::NewGuid().ToByteArray() | ForEach-Object ToString X2 | ForEach-Object ToLower | ForEach-Object { $_ } | Out-String
+
+define('ADMIN_TOTP_SECRET_HEX', '6f2c8cc29d47a7d1f0b6eaa1c9d0b3f2a1b2c3d4e5f60718293a4b5c6d7e8f90');
+define('ADMIN_TOTP_PERIOD', 30); // secondes
+define('ADMIN_TOTP_DIGITS', 6);
+// Option: vous pouvez limiter l’accès admin par IP en ajoutant une vérification dans aliases.php

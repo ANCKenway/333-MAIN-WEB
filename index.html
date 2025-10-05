@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr" class="theme-dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>333.FM — Dev/Art Lab</title>
+    <meta name="description" content="333.FM — Studio créatif. Code, Art & Audio. Terminal interactif vers nos projets en cours." />
+    <meta property="og:title" content="333.FM — Dev/Art Lab" />
+    <meta property="og:description" content="Vitrine futuriste. Terminal interactif. Projets en cours." />
+    <meta property="og:type" content="website" />
+  <meta property="og:image" content="api/og.php" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <link rel="icon" href="assets/img/cover.jpg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="api/icon.php?size=32" />
+  <link rel="icon" type="image/png" sizes="192x192" href="api/icon.php?size=192" />
+  <link rel="apple-touch-icon" sizes="180x180" href="api/icon.php?size=180" />
+  <link rel="manifest" href="assets/icons/site.webmanifest" />
+  <meta name="msapplication-config" content="assets/icons/browserconfig.xml" />
+  <meta name="theme-color" content="#0D0D0D" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body>
+    <canvas id="starfield" aria-hidden="true"></canvas>
+    <div class="grain-overlay" aria-hidden="true"></div>
+    <div id="tech-overlay" class="tech-overlay" aria-hidden="true"></div>
+
+    <div id="intro" class="intro" aria-hidden="true">
+      <div class="intro-inner">
+  <img class="intro-logo" src="assets/img/cover.jpg" alt="333.FM" />
+        <div class="intro-scan"></div>
+        <div class="intro-target" aria-hidden="true"></div>
+        <div class="intro-flash" aria-hidden="true"></div>
+          <div class="intro-grid" aria-hidden="true"></div>
+          <div class="intro-rays" aria-hidden="true"></div>
+          <div class="intro-spectrum" aria-hidden="true"></div>
+      </div>
+      <div class="intro-bars top" aria-hidden="true"></div>
+      <div class="intro-bars bottom" aria-hidden="true"></div>
+    </div>
+
+    <main id="app">
+      <div id="boot" class="boot" aria-hidden="true" hidden>
+        <div class="boot-inner">
+          <canvas id="boot-rain" aria-hidden="true"></canvas>
+          <div class="boot-fx" aria-hidden="true"></div>
+          <pre id="boot-pre" class="boot-pre"></pre>
+          <div class="boot-actions">
+            <button id="boot-continue" class="btn primary" type="button" aria-label="Continuer">Continuer</button>
+          </div>
+        </div>
+      </div>
+      <header class="hero" data-depth="0.15">
+        <div class="logo-wrap" aria-hidden="true"></div>
+  <img class="brand-logo" src="assets/img/cover.jpg" alt="333.FM" loading="eager" decoding="async" />
+        <div class="orbits" aria-hidden="true">
+          <div class="orbit o1"></div>
+          <div class="orbit o2"></div>
+          <div class="orbit o3"></div>
+        </div>
+      </header>
+
+      <section id="drawer" class="drawer" aria-label="Console 333.FM" data-depth="0.3">
+        <div class="drawer-inner">
+          <div id="terminal" class="compact" role="region" aria-label="Terminal interactif 333.FM" tabindex="0">
+            <pre id="terminal-output" aria-live="polite"></pre>
+            <div id="terminal-input-line">
+              <span class="prompt" aria-hidden="true">333FM:\Project&gt;</span>
+              <input id="terminal-input" type="text" autocomplete="off" spellcheck="false" aria-label="Entrer une commande" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="footer-note" aria-hidden="false">
+        <small><strong><span class="brand-red">333.FM</span> — Tous crimes réservés.</strong></small><br />
+        <small>C'est <span class="accent-orange">Dieu</span> qui donne, c'est l'<span class="accent-orange">ARCOM</span> qui reprend</small>
+      </div>
+ 
+      
+
+      <div id="projects-overlay" class="projects-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Projets 333.FM">
+        <div class="projects-inner">
+          <div class="projects-head">
+            <h2 class="projects-title">Projets</h2>
+            <button id="projects-close" class="ghost" aria-label="Fermer">Fermer</button>
+          </div>
+          <div id="projects-grid" class="projects-grid" role="list"></div>
+        </div>
+      </div>
+
+      <footer class="footer" data-depth="0.05">
+        <small class="legal">© <span id="year"></span> 333.FM — Tous droits réservés.</small><br />
+        <small class="legal">333FM.FR est un site réservé; le nom de domaine 333fm.fr est la propriété de 333.FM.</small>
+      </footer>
+      <div id="toast" class="toast" aria-live="polite" aria-atomic="true" aria-hidden="true"></div>
+    </main>
+
+    <noscript>
+      <div class="noscript-msg">Ce site nécessite un peu de JavaScript pour le terminal interactif.</div>
+    </noscript>
+
+  <script src="assets/js/colorizer.js"></script>
+  <script src="assets/js/parallax.js"></script>
+    <script src="assets/js/terminal.js"></script>
+  <script src="assets/js/projects.js"></script>
+    <script src="assets/js/main.js"></script>
+  </body>
+  </html>
