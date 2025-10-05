@@ -106,6 +106,10 @@ function check_code($code){
 
 // Auth
 if($action==='auth'){
+  // Si une liste d'IP est définie, limiter l'auth à celles-ci
+  if(defined('ADMIN_IPS') && is_array(ADMIN_IPS) && !in_array($_SERVER['REMOTE_ADDR'] ?? '', ADMIN_IPS, true)){
+    ko('forbidden', 403);
+  }
   $body = json_decode(file_get_contents('php://input'), true) ?: [];
   $code = $body['code'] ?? '';
   // Anti brute-force simple
@@ -123,6 +127,10 @@ if($action==='auth'){
 
 // Save aliases
 if($action==='save'){
+  // Si une liste d'IP est définie, limiter l'opération à celles-ci
+  if(defined('ADMIN_IPS') && is_array(ADMIN_IPS) && !in_array($_SERVER['REMOTE_ADDR'] ?? '', ADMIN_IPS, true)){
+    ko('forbidden', 403);
+  }
   $body = json_decode(file_get_contents('php://input'), true) ?: [];
   $data = $body['data'] ?? null;
   // Vérifier session et CSRF

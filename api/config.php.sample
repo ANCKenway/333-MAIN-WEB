@@ -13,3 +13,6 @@ define('ADMIN_TOTP_DIGITS', 6);
 //   php -r "echo password_hash('VOTRE_MDP_FORT', PASSWORD_DEFAULT), PHP_EOL;"
 // Puis copiez-le ci-dessous. Si défini, il sera prioritaire sur le TOTP.
 // define('ADMIN_PASSWORD_HASH', '$2y$10$exempledehachage.........................');
+
+// Option: restreindre l'accès admin par IP (liste blanche)
+// define('ADMIN_IPS', ['127.0.0.1', '1.2.3.4']);
