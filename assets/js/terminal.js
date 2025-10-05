@@ -115,18 +115,14 @@
         let adminKey = null;
         try{ const r = await fetch('data/admin.json', {cache:'no-cache'}); if(r.ok){ const j = await r.json(); adminKey = (j && j.key) ? String(j.key) : null; } }catch(_){ }
         const entered = input.trim();
-        if(adminKey && entered === adminKey){
-          try{ sessionStorage.setItem('adminAuthed','1'); sessionStorage.setItem('adminCode', entered); }catch(_){}
-          window.location.href = 'admin.html';
-          return;
-        }
-        // 2) fallback API d’auth
+        // Toujours valider côté serveur (déclenchement enrôlement si nécessaire)
         try{
           const rr = await fetch('api/aliases.php?action=auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code: entered }) });
           const jj = await rr.json();
           if(jj && jj.ok){
             try{ sessionStorage.setItem('adminAuthed','1'); sessionStorage.setItem('adminCode', entered); }catch(_){}
-            window.location.href = 'admin.html';
+            if(jj.data && jj.data.enroll){ window.location.href = 'admin-enroll.html'; }
+            else { window.location.href = 'admin.html'; }
             return;
           } else {
             // Si l’auth via code direct échoue (2FA requis), rediriger vers la page de connexion
