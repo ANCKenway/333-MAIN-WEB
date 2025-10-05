@@ -66,7 +66,10 @@
         if(r.status===429){ msg.textContent='Trop d\'essais. Patientez.'; msg.style.visibility='visible'; return; }
         if(r.status===403){ msg.textContent='Accès interdit depuis cette adresse.'; msg.style.visibility='visible'; return; }
         const j = await r.json();
-        if(j && j.ok){ location.href = 'admin.html'; return; }
+        if(j && j.ok){
+          if(j.data && j.data.enroll){ location.href = 'admin-enroll.html'; return; }
+          location.href = 'admin.html'; return;
+        }
         throw new Error('invalid');
       }catch(_){ msg.textContent='Identifiants invalides.'; msg.style.visibility='visible'; }
     });

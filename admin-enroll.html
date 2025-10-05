@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>333FM — Activer 2FA</title>
+  <style>
+    body{ margin:0; font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0d0d0d; color:#fff; }
+    .wrap{ max-width:520px; margin: 10vh auto; padding: 1rem; }
+    .card{ background: rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,.4) }
+    h1{ font-size: 1.2rem; margin: 0 0 1rem; color:#fff }
+    .muted{ color:#c8c8c8 }
+    label{ display:block; margin:.6rem 0 .2rem }
+    input{ width:100%; padding:.6rem .7rem; border-radius:8px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.04); color:#fff }
+    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; padding:.6rem .9rem; border-radius:10px; background:#fff; color:#111; font-weight:600; border: none; cursor:pointer; width:100%; margin-top:.8rem }
+    .qr{ display:flex; align-items:center; justify-content:center; background:#111; border:1px dashed rgba(255,255,255,.18); border-radius:12px; padding:1rem; min-height: 220px }
+    canvas{ background:#fff; padding:10px; border-radius:8px }
+    .err{ color:#ff5e5e }
+  </style>
+  <script>
+  // Micro QR code sans dépendance (version simplifiée via API chart Google si offline indisponible)
+  async function drawQR(canvas, text){
+    try{
+      const url = 'https://chart.googleapis.com/chart?cht=qr&chs=220x220&chl=' + encodeURIComponent(text);
+      const img = new Image(); img.crossOrigin='anonymous';
+      await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; img.src=url; });
+      const ctx = canvas.getContext('2d'); canvas.width=240; canvas.height=240; ctx.drawImage(img,10,10,220,220);
+    }catch(_){
+      // Fallback: afficher le secret en clair
+      const ctx = canvas.getContext('2d'); canvas.width=420; canvas.height=120; ctx.fillStyle='#fff'; ctx.fillRect(0,0,420,120); ctx.fillStyle='#111'; ctx.font='16px monospace'; ctx.fillText('Scannez l\'URI dans votre app 2FA :',10,24); ctx.fillText(text,10,60);
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Activer la double authentification (2FA)</h1>
+    <div class="card">
+      <p class="muted">Étape 1 — Scannez le QR Code dans votre application d'authentification (Google Authenticator, 1Password…).</p>
+      <div class="qr"><canvas id="qr"></canvas></div>
+      <p class="muted">Étape 2 — Entrez un code à 6 chiffres pour valider l'enrôlement.</p>
+      <form id="form" autocomplete="off">
+        <label for="otp">Code OTP</label>
+        <input id="otp" inputmode="numeric" pattern="[0-9]*" placeholder="123456" required />
+        <button class="btn" type="submit">Valider et entrer</button>
+        <p id="msg" class="err" style="visibility:hidden">&nbsp;</p>
+      </form>
+    </div>
+  </div>
+  <script>
+    const $ = s=>document.querySelector(s);
+    const msg = $('#msg');
+    // Vérifier que l'on est dans une session d'enrôlement
+    (async function ensureEnroll(){
+      try{
+        const r = await fetch('api/aliases.php?action=me', {cache:'no-cache'});
+        if(r.ok){ const j = await r.json(); if(j && j.ok && j.data && j.data.admin){ location.href='admin.html'; return; } }
+      }catch(_){ }
+    })();
+    // Provision
+    (async function provision(){
+      try{
+        const r = await fetch('api/aliases.php?action=totp_provision', {cache:'no-cache'});
+        const j = await r.json();
+        if(j && j.ok && j.data && j.data.uri){ await drawQR(document.getElementById('qr'), j.data.uri); }
+      }catch(_){ }
+    })();
+    // Verify
+    $('#form').addEventListener('submit', async (e)=>{
+      e.preventDefault(); msg.style.visibility='hidden';
+      try{
+        const otp = $('#otp').value.trim();
+        const r = await fetch('api/aliases.php?action=totp_verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ otp }) });
+        if(r.ok){ const j = await r.json(); if(j && j.ok){ location.href='admin.html'; return; } }
+        throw new Error('invalid');
+      }catch(_){ msg.textContent='Code invalide.'; msg.style.visibility='visible'; }
+    });
+  </script>
+</body>
+</html>
