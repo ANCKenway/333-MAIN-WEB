@@ -176,6 +176,16 @@ $ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
 if($ext === 'php'){
   require $full; exit;
 }
-$mime = mime_content_type($full) ?: 'application/octet-stream';
+$ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
+$mimeMap = [
+  'html'=>'text/html; charset=utf-8','htm'=>'text/html; charset=utf-8','php'=>'text/html; charset=utf-8',
+  'css'=>'text/css; charset=utf-8','js'=>'application/javascript; charset=utf-8','mjs'=>'application/javascript; charset=utf-8',
+  'json'=>'application/json; charset=utf-8','svg'=>'image/svg+xml; charset=utf-8','xml'=>'application/xml; charset=utf-8',
+  'png'=>'image/png','jpg'=>'image/jpeg','jpeg'=>'image/jpeg','gif'=>'image/gif','webp'=>'image/webp','ico'=>'image/x-icon',
+  'woff'=>'font/woff','woff2'=>'font/woff2','ttf'=>'font/ttf','otf'=>'font/otf',
+  'mp4'=>'video/mp4','webm'=>'video/webm','wav'=>'audio/wav','mp3'=>'audio/mpeg'
+];
+$mime = $mimeMap[$ext] ?? (function_exists('mime_content_type') ? mime_content_type($full) : 'application/octet-stream');
+if(!$mime) $mime = 'application/octet-stream';
 header('Content-Type: ' . $mime);
 readfile($full); exit;

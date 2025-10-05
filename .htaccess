@@ -1,12 +1,19 @@
-# Front Gate 2FA — redirige toutes les requêtes vers frontgate.php
-# Nécessite mod_rewrite activé (Apache)
+# Front Gate 2FA — réécriture conditionnelle
+# - Si le fichier frontgate.lock existe à la racine: tout le site passe par frontgate.php
+# - Sinon: seules les pages admin sont protégées (admin.html, admin-login.html)
 
 Options -Indexes
 RewriteEngine On
 
-# Ne pas filtrer les fichiers cachés ni frontgate lui-même
+# Laisser passer le frontgate lui-même
 RewriteRule ^frontgate\.php$ - [L]
 
-# Capturer tout le chemin demandé et le passer à frontgate
+# Mode verrou global activé par fichier
+RewriteCond %{DOCUMENT_ROOT}/frontgate.lock -f
 RewriteCond %{REQUEST_URI} !^/frontgate\.php$
+RewriteRule ^(.*)$ /frontgate.php?fg_path=$1 [L,QSA]
+
+# Sinon, protéger seulement l'admin
+RewriteCond %{DOCUMENT_ROOT}/frontgate.lock !-f
+RewriteCond %{REQUEST_URI} ^/(admin\.html|admin-login\.html)$ [NC]
 RewriteRule ^(.*)$ /frontgate.php?fg_path=$1 [L,QSA]

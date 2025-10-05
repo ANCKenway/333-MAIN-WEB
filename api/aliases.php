@@ -80,22 +80,24 @@ if($action==='logout'){
   ok();
 }
 
-// Vérification code (TOTP basé sur SECRET_HEX si dispo)
-function check_code($code){
+// Vérifications séparées
+function check_password($code){
   $code = trim((string)$code);
   if($code==='') return false;
-  // Option 1: mot de passe hashé (bcrypt/argon2)
   if(defined('ADMIN_PASSWORD_HASH') && ADMIN_PASSWORD_HASH){
     return password_verify($code, ADMIN_PASSWORD_HASH) === true;
   }
-  // Option 2: TOTP basé sur un secret hexadécimal
+  return false;
+}
+function check_totp($otp){
+  $otp = trim((string)$otp);
+  if($otp==='') return false;
   if(defined('ADMIN_TOTP_SECRET_HEX') && ADMIN_TOTP_SECRET_HEX){
     $period = defined('ADMIN_TOTP_PERIOD') ? ADMIN_TOTP_PERIOD : 30;
     $digits = defined('ADMIN_TOTP_DIGITS') ? ADMIN_TOTP_DIGITS : 6;
-    $secret = hex2bin(ADMIN_TOTP_SECRET_HEX);
+    $secret = @hex2bin(ADMIN_TOTP_SECRET_HEX);
     if(!$secret) return false;
     $ts = time();
-    // fenêtre +/- 1 période pour tolérance de décalage
     for($i=-1; $i<=1; $i++){
       $t = floor($ts / $period) + $i;
       $binTime = pack('N*', 0) . pack('N*', $t);
@@ -104,11 +106,10 @@ function check_code($code){
       $part = substr($hmac, $offset, 4);
       $int = unpack('N', $part)[1] & 0x7fffffff;
       $tok = str_pad((string)($int % pow(10, $digits)), $digits, '0', STR_PAD_LEFT);
-      if(hash_equals($tok, $code)) return true;
+      if(hash_equals($tok, $otp)) return true;
     }
     return false;
   }
-  // Par défaut (pas de config): refuser
   return false;
 }
 
@@ -130,8 +131,8 @@ if($action==='auth'){
   // Exiger tous les facteurs configurés
   $needPassword = (defined('ADMIN_PASSWORD_HASH') && ADMIN_PASSWORD_HASH);
   $needTotp = (defined('ADMIN_TOTP_SECRET_HEX') && ADMIN_TOTP_SECRET_HEX);
-  $okPwd = !$needPassword || check_code($code);
-  $okTotp = !$needTotp || check_code($otp);
+  $okPwd = !$needPassword || check_password($code);
+  $okTotp = !$needTotp || check_totp($otp);
   if($okPwd && $okTotp){
     $_SESSION['admin'] = true;
     if(empty($_SESSION['csrf'])){ $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
