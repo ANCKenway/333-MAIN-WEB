@@ -1,0 +1,12 @@
+# Front Gate 2FA — redirige toutes les requêtes vers frontgate.php
+# Nécessite mod_rewrite activé (Apache)
+
+Options -Indexes
+RewriteEngine On
+
+# Ne pas filtrer les fichiers cachés ni frontgate lui-même
+RewriteRule ^frontgate\.php$ - [L]
+
+# Capturer tout le chemin demandé et le passer à frontgate
+RewriteCond %{REQUEST_URI} !^/frontgate\.php$
+RewriteRule ^(.*)$ /frontgate.php?fg_path=$1 [L,QSA]

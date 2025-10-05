@@ -62,6 +62,14 @@ if($action==='me'){
     ko('unauthorized', 401);
   }
 }
+// Exigences d'auth (découverte côté client)
+if($action==='requirements'){
+  $req = [
+    'password' => (defined('ADMIN_PASSWORD_HASH') && ADMIN_PASSWORD_HASH) ? true : false,
+    'totp' => (defined('ADMIN_TOTP_SECRET_HEX') && ADMIN_TOTP_SECRET_HEX) ? true : false
+  ];
+  ok($req);
+}
 if($action==='logout'){
   $_SESSION = [];
   if (ini_get('session.use_cookies')) {
@@ -112,13 +120,19 @@ if($action==='auth'){
   }
   $body = json_decode(file_get_contents('php://input'), true) ?: [];
   $code = $body['code'] ?? '';
+  $otp = $body['otp'] ?? '';
   // Anti brute-force simple
   $_SESSION['auth_log'] = $_SESSION['auth_log'] ?? [];
   $now = time();
   $_SESSION['auth_log'] = array_values(array_filter($_SESSION['auth_log'], function($t) use ($now){ return ($now - $t) < 300; })); // 5 min
   if(count($_SESSION['auth_log']) >= 10) ko('rate_limited', 429);
   $_SESSION['auth_log'][] = $now;
-  if(check_code($code)){
+  // Exiger tous les facteurs configurés
+  $needPassword = (defined('ADMIN_PASSWORD_HASH') && ADMIN_PASSWORD_HASH);
+  $needTotp = (defined('ADMIN_TOTP_SECRET_HEX') && ADMIN_TOTP_SECRET_HEX);
+  $okPwd = !$needPassword || check_code($code);
+  $okTotp = !$needTotp || check_code($otp);
+  if($okPwd && $okTotp){
     $_SESSION['admin'] = true;
     if(empty($_SESSION['csrf'])){ $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
     ok(['csrf'=>$_SESSION['csrf']]);

@@ -38,14 +38,6 @@
 <body>
   <div class="wrap">
     <h1>Admin — Aliases prompt → URL</h1>
-    <div id="login" class="card">
-      <p class="muted">Entrez votre code d’accès</p>
-      <div class="row">
-        <input type="password" id="code" placeholder="Code sécurisé" />
-        <button class="btn" id="enter">Entrer</button>
-      </div>
-  <small class="muted">Le code est vérifié côté serveur (TOTP ou mot de passe hashé). Aucun contrôle côté client.</small>
-    </div>
     <div id="panel" class="card" style="display:none">
       <p class="muted">Ajoutez des alias: à gauche le prompt que l’utilisateur tape, à droite l’URL de redirection.</p>
       <div class="row spc">
@@ -79,9 +71,7 @@
   </div>
   <script>
     const $ = sel => document.querySelector(sel);
-    const login = $('#login');
     const panel = $('#panel');
-    const code = $('#code');
   const table = $('#table');
     const filter = $('#filter');
     const sortBtn = $('#sort');
@@ -137,7 +127,7 @@
       }catch(e){ renderRows({"333game":"https://333fm.fr/333game/"}); }
     }
     let csrf = '';
-    function authOk(){ login.style.display='none'; panel.style.display='block'; load(); }
+    function authOk(){ panel.style.display='block'; load(); }
     async function checkSession(){
       try{
         const r = await fetch('api/aliases.php?action=me', {cache:'no-cache'});
@@ -145,29 +135,11 @@
       }catch(_){ }
       return false;
     }
-    // Auto-auth depuis la session si déjà validé en prompt
-    (async function auto(){
-      try{
-        const authed = sessionStorage.getItem('adminAuthed') === '1';
-        const savedCode = sessionStorage.getItem('adminCode') || '';
-        // Si session serveur valide, on ouvre direct (plus sûr)
-        const ok = await checkSession();
-        if(ok) return;
-        if(authed){ authOk(); if(savedCode) code.value = savedCode; }
-      }catch(_){ }
+    // Vérification de session au chargement, sinon redirection vers login
+    (async function ensureAuth(){
+      const ok = await checkSession();
+      if(!ok){ location.href = 'admin-login.html'; }
     })();
-    $('#enter').addEventListener('click', async ()=>{
-      // Appel API côté serveur pour valider le code
-      try{
-        const r = await fetch('api/aliases.php?action=auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code: code.value}) });
-        if(r.status === 429){ msg.textContent = 'Trop d’essais. Réessayez dans quelques minutes.'; msg.className = 'err'; return; }
-  const j = await r.json();
-  if(j && j.ok){ csrf = (j.data && j.data.csrf) ? j.data.csrf : ''; authOk(); }
-        else { throw new Error('invalid'); }
-      }catch(_){
-        msg.textContent = 'Code invalide'; msg.className = 'err';
-      }
-    });
     $('#reload').addEventListener('click', load);
     $('#add').addEventListener('click', ()=>{
       const tbody = table.querySelector('tbody');
@@ -211,7 +183,6 @@
     });
     $('#save').addEventListener('click', async ()=>{
       try{
-        const savedCode = (sessionStorage.getItem('adminCode') || code.value || '').toString();
         // Construire la map à partir du tableau
         const map = {};
         const rows = table.querySelectorAll('tbody tr');
@@ -222,10 +193,11 @@
           if(!k || !v) continue;
           map[k] = v;
         }
-        const body = { code: savedCode, data: map };
+        const body = { data: map };
         const headers = {'Content-Type':'application/json'};
         if(csrf) headers['X-CSRF'] = csrf;
         const r = await fetch('api/aliases.php?action=save', { method:'POST', headers, body: JSON.stringify(body) });
+        if(r.status===401 || r.status===403){ location.href = 'admin-login.html'; return; }
         const j = await r.json();
         if(j && j.ok){ msg.textContent = 'Sauvegardé'; msg.className = 'ok'; setDirty(false); showToast('Alias enregistrés'); }
         else { msg.textContent = 'Échec sauvegarde'; msg.className = 'err'; showToast('Échec sauvegarde'); }
@@ -241,8 +213,7 @@
     window.addEventListener('beforeunload', (e)=>{ if(isDirty){ e.preventDefault(); e.returnValue = ''; } });
     $('#logout').addEventListener('click', async ()=>{
       try{ await fetch('api/aliases.php?action=logout', {cache:'no-cache'}); }catch(_){ }
-      try{ sessionStorage.removeItem('adminAuthed'); sessionStorage.removeItem('adminCode'); }catch(_){ }
-      location.href = './';
+      location.href = 'admin-login.html';
     });
   </script>
 </body>

@@ -16,3 +16,9 @@ define('ADMIN_TOTP_DIGITS', 6);
 
 // Option: restreindre l'accès admin par IP (liste blanche)
 // define('ADMIN_IPS', ['127.0.0.1', '1.2.3.4']);
+
+// Verrou global par 2FA (Front Gate)
+// Si vous souhaitez protéger TOUT le site derrière la même authentification (session + MDP/TOTP),
+// activez cette option et placez frontgate.php + .htaccess à la racine.
+// IMPORTANT: Assurez-vous d'avoir configuré ADMIN_PASSWORD_HASH et/ou ADMIN_TOTP_SECRET_HEX.
+// define('FRONTGATE_LOCK', true);

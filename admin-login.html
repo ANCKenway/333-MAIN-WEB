@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>333FM — Connexion admin</title>
+  <style>
+    body{ margin:0; font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0d0d0d; color:#fff; }
+    .wrap{ max-width:480px; margin: 10vh auto; padding: 1rem; }
+    .card{ background: rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,.4) }
+    h1{ font-size: 1.2rem; margin: 0 0 1rem; color:#fff }
+    .muted{ color:#c8c8c8 }
+    label{ display:block; margin:.6rem 0 .2rem }
+    input{ width:100%; padding:.6rem .7rem; border-radius:8px; border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.04); color:#fff }
+    .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; padding:.6rem .9rem; border-radius:10px; background:#fff; color:#111; font-weight:600; border: none; cursor:pointer; width:100%; margin-top:.8rem }
+    .err{ color:#ff5e5e }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Connexion admin</h1>
+    <div class="card">
+      <p class="muted">Veuillez vous authentifier.</p>
+      <form id="form" autocomplete="off">
+        <div id="pw-block">
+          <label for="code">Mot de passe</label>
+          <input id="code" type="password" placeholder="Mot de passe" required />
+        </div>
+        <div id="otp-block" style="display:none">
+          <label for="otp">Code OTP</label>
+          <input id="otp" inputmode="numeric" pattern="[0-9]*" placeholder="123456" />
+        </div>
+        <button class="btn" type="submit">Se connecter</button>
+        <p id="msg" class="err" style="visibility:hidden">&nbsp;</p>
+      </form>
+    </div>
+  </div>
+  <script>
+    const $ = s=>document.querySelector(s);
+    const msg = $('#msg');
+    // Si déjà authentifié côté serveur, aller directement sur l'admin
+    (async function already(){
+      try{ const r = await fetch('api/aliases.php?action=me', {cache:'no-cache'}); if(r.ok){ const j = await r.json(); if(j && j.ok && j.data && j.data.admin){ location.href='admin.html'; return; } } }catch(_){ }
+    })();
+    async function getReq(){
+      try{ const r = await fetch('api/aliases.php?action=requirements',{cache:'no-cache'}); if(!r.ok) return {password:true}; return (await r.json())?.data || {password:true}; }catch(_){ return {password:true}; }
+    }
+    (async function init(){
+      const req = await getReq();
+      if(req.password) $('#pw-block').style.display='block';
+      if(req.totp) $('#otp-block').style.display='block';
+    })();
+    $('#form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      msg.style.visibility='hidden';
+      const code = $('#code').value;
+      const otp = ($('#otp').value||'').trim();
+      try{
+        const r = await fetch('api/aliases.php?action=auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code, otp }) });
+        if(r.status===429){ msg.textContent='Trop d\'essais. Patientez.'; msg.style.visibility='visible'; return; }
+        if(r.status===403){ msg.textContent='Accès interdit depuis cette adresse.'; msg.style.visibility='visible'; return; }
+        const j = await r.json();
+        if(j && j.ok){ location.href = 'admin.html'; return; }
+        throw new Error('invalid');
+      }catch(_){ msg.textContent='Identifiants invalides.'; msg.style.visibility='visible'; }
+    });
+  </script>
+</body>
+</html>
