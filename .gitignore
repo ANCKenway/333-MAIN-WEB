@@ -1,0 +1,6 @@
+# Secrets locaux (ne pas commit)
+/api/config.php
+
+# Artefacts éventuels de l’éditeur/OS
+.DS_Store
+Thumbs.db
